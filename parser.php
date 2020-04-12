@@ -19,21 +19,30 @@ echo ($json);
  * Local functions
  */
 
-/* Parse a HLDS log file and return json
+/* Parse a HLDS log file and return json in _bulk format accepted for Elasticsearch bulk import
  *
  *  options:
  *   json_pretty (bool)
  */
 function parse_file($file, $options = array()){
-  $parsed = array();
+  $parsed = '';
   $handle = fopen($file, "r");
   if ($handle) {
+    $bulk_import = array(
+        'index' => array(
+            '_index' => 'counter',
+        ),
+    );
+    $bulk_import_json = json_encode($bulk_import);
+
     while (($line = fgets($handle)) !== false) {
 
       // parse line
       $parsed_line = parse_line($line);
       if(!empty($parsed_line)){
-        $parsed[] = $parsed_line;
+
+        $parsed .= $bulk_import_json . "\r\n";
+        $parsed .= json_encode($parsed_line) . "\r\n";
       }
     }
 
@@ -42,12 +51,7 @@ function parse_file($file, $options = array()){
     // error opening the file.
     // TODO show proper message
   }
-
-  if ($options['json_pretty']){
-    return json_encode($parsed,JSON_PRETTY_PRINT);
-  } else {
-    return json_encode($parsed);
-  }
+  return $parsed;
 }
 
 function parse_line($data){
