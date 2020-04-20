@@ -35,14 +35,21 @@ function parse_file($file, $options = array()){
     );
     $bulk_import_json = json_encode($bulk_import);
 
+    $actual_map_name = '';
     while (($line = fgets($handle)) !== false) {
 
-      // parse line
-      $parsed_line = parse_line($line);
-      if(!empty($parsed_line)){
+      //First we look at the map
+      $parsed_map_name = parse_map($line);
+      $actual_map_name = $parsed_map_name ?: $actual_map_name;
+      if ($actual_map_name){
+        // if we get a map name, start parsing kills
+        $parsed_line = parse_line($line);
+        if(!empty($parsed_line)){
+          $parsed_line['map'] = $actual_map_name;
 
-        $parsed .= $bulk_import_json . "\r\n";
-        $parsed .= json_encode($parsed_line) . "\r\n";
+          $parsed .= $bulk_import_json . "\r\n";
+          $parsed .= json_encode($parsed_line) . "\r\n";
+        }
       }
     }
 
@@ -70,5 +77,15 @@ function parse_line($data){
     );
   }
 
+  return $ret;
+}
+
+function parse_map($data){
+  $ret = false;
+  // -------- Mapchange to de_aztec --------
+  if (preg_match('/: -------- Mapchange to (.+) --------/i', $data) ){
+    preg_match('/: -------- Mapchange to (.+) --------/i',$data,$matches);
+    $ret = $matches[1];
+  }
   return $ret;
 }
